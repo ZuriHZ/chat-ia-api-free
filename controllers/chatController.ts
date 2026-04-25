@@ -34,6 +34,14 @@ interface ChatCompletionChunk {
     }>;
 }
 
+const OPENROUTER_AUTH_ERROR_PATTERNS = [
+    "user not found",
+    "no auth credentials found",
+    "invalid api key",
+    "unauthorized",
+    "401",
+];
+
 // Initialize the OpenRouter SDK
 const openRouter = new OpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY || "",
@@ -46,6 +54,18 @@ const jsonResponse = (body: unknown, status: number) =>
         status,
         headers: { "Content-Type": "application/json" },
     });
+
+const isOpenRouterAuthError = (error: unknown): boolean => {
+    if (!(error instanceof Error)) {
+        return false;
+    }
+
+    const message = error.message.toLowerCase();
+
+    return OPENROUTER_AUTH_ERROR_PATTERNS.some((pattern) =>
+        message.includes(pattern),
+    );
+};
 
 const normalizeConversationId = (
     conversationId: number | string | undefined,
@@ -264,6 +284,13 @@ export const handleChat = async (req: Request): Promise<Response> => {
                     err instanceof Error ? err.message : err,
                 );
                 finalError = err;
+
+                if (isOpenRouterAuthError(err)) {
+                    console.error(
+                        "[API] Error de autenticación con OpenRouter. Se cancelan reintentos.",
+                    );
+                    break;
+                }
                 attempts++;
 
                 // Siempre continuamos al siguiente modelo
@@ -276,16 +303,19 @@ export const handleChat = async (req: Request): Promise<Response> => {
                 "[API] Todos los intentos fallaron:",
                 attemptedModels,
             );
+            const hasAuthError = isOpenRouterAuthError(finalError);
             return jsonResponse(
                 {
-                    error: "No se pudo obtener respuesta del proveedor de IA",
+                    error: hasAuthError
+                        ? "Error de autenticación con OpenRouter"
+                        : "No se pudo obtener respuesta del proveedor de IA",
                     detail:
                         finalError instanceof Error
                             ? finalError.message
                             : "Todos los intentos con modelos fallaron",
                     attemptedModels,
                 },
-                502,
+                hasAuthError ? 500 : 502,
             );
         }
 

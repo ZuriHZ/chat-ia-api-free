@@ -104,7 +104,10 @@ const server = Bun.serve({
             );
         }
 
-        if (url.pathname === "/chat" && req.method === "POST") {
+        if (
+            (url.pathname === "/chat" || url.pathname === "/api/chat") &&
+            req.method === "POST"
+        ) {
             return withCors(await handleChat(req));
         }
 
