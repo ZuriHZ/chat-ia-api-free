@@ -140,9 +140,33 @@ export function useChat() {
                 setModels(loadedModels);
                 setModelsLoading(false);
 
+                // Si el modelo seleccionado (guardado en localStorage) ya no existe
+                // en la lista actual del backend, reseteamos al primero disponible
+                const persistedModel = useChatStore.getState().selectedModel;
+                const modelExists = loadedModels.some(
+                    (model) => model.id === persistedModel,
+                );
+                if (!modelExists && loadedModels.length > 0) {
+                    setSelectedModel(loadedModels[0]!.id);
+                }
+
                 startTransition(() => {
                     setConversations(loadedConversations);
                 });
+
+                // Si el backend devuelve conversaciones vacías, forzamos limpieza total
+                // para evitar conversaciones huérfanas del cache anterior
+                if (loadedConversations.length === 0) {
+                    const persistedConvos =
+                        useChatStore.getState().conversations;
+                    if (persistedConvos.length > 0) {
+                        useChatStore.setState({
+                            conversations: [],
+                            currentConversationId: null,
+                            messagesByConversation: {},
+                        });
+                    }
+                }
 
                 const nextConversationId =
                     persistedConversationId &&
@@ -151,6 +175,30 @@ export function useChat() {
                     )
                         ? persistedConversationId
                         : loadedConversations[0]?.id ?? null;
+
+                // Si la conversación guardada en localStorage ya no existe en el backend,
+                // la eliminamos del store para evitar conversaciones huérfanas
+                if (
+                    persistedConversationId !== null &&
+                    !loadedConversations.some(
+                        (c) => c.id === persistedConversationId,
+                    )
+                ) {
+                    useChatStore.getState().setMessages(persistedConversationId, []);
+                }
+
+                // Limpiamos mensajes de conversaciones que ya no existen en el backend
+                const currentMessagesByConversation =
+                    useChatStore.getState().messagesByConversation;
+                const validConversationIds = new Set(
+                    loadedConversations.map((c) => c.id),
+                );
+                for (const convIdStr of Object.keys(currentMessagesByConversation)) {
+                    const convId = Number(convIdStr);
+                    if (!validConversationIds.has(convId)) {
+                        useChatStore.getState().setMessages(convId, []);
+                    }
+                }
 
                 setCurrentConversationId(nextConversationId);
             } catch (nextError) {
@@ -172,7 +220,7 @@ export function useChat() {
             cancelled = true;
             streamAbortRef.current?.abort();
         };
-    }, [setConversations, setCurrentConversationId]);
+    }, [setConversations, setCurrentConversationId, setSelectedModel]);
 
     useEffect(() => {
         if (!bootstrappedRef.current || currentConversationId === null) {

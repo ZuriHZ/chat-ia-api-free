@@ -30,7 +30,7 @@ export const useChatStore = create<ChatStore>()(
             conversations: [],
             currentConversationId: null,
             messagesByConversation: {},
-            selectedModel: "openrouter/free",
+            selectedModel: "nousresearch/hermes-3-llama-3.1-405b:free",
             removeConversation: (conversationId) =>
                 set((state) => {
                     const nextMessages = { ...state.messagesByConversation };
