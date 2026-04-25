@@ -25,8 +25,8 @@ function App() {
     } = useChat();
 
     return (
-        <div className="app-shell min-h-screen">
-            <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-4 lg:flex-row lg:px-6">
+        <div className="app-shell h-screen">
+            <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-4 overflow-hidden px-4 py-4 lg:flex-row lg:px-6">
                 <ConversationList
                     conversations={conversations}
                     currentConversationId={currentConversationId}
@@ -37,7 +37,7 @@ function App() {
                     onSelectConversation={handleSelectConversation}
                 />
 
-                <main className="glass-panel flex min-h-[78vh] flex-1 flex-col overflow-hidden rounded-[2rem] border border-stone-200/70">
+                <main className="glass-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-stone-200/70">
                     <ChatContainer
                         canRetry={canRetry}
                         currentConversationId={currentConversationId}

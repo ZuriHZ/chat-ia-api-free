@@ -38,7 +38,14 @@ export function ChatContainer({
     const endRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        if (messages.length > 0 || isStreaming) {
+            requestAnimationFrame(() => {
+                endRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "end",
+                });
+            });
+        }
     }, [messages, isStreaming]);
 
     const isEmpty = messages.length === 0 && !isLoadingMessages && !isBootstrapping;

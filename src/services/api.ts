@@ -105,7 +105,7 @@ export async function sendChat(
                 throw new Error(errorInfo.detail || errorInfo.error || text);
             } catch (parseError) {
                 if (parseError instanceof Error) throw parseError;
-                throw new Error(text);
+                throw new Error(text, { cause: parseError });
             }
         }
         
