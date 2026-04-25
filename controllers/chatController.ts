@@ -36,10 +36,9 @@ interface ChatCompletionChunk {
 
 // Initialize the OpenRouter SDK
 const openRouter = new OpenRouter({
-    // Fallback to empty string if missing, though it requires api key
     apiKey: process.env.OPENROUTER_API_KEY || "",
-    httpReferer: "http://localhost:3000", // Optional, adjust based on your site
-    xTitle: "API-Bun-Chat", // Optional, name of your app
+    httpReferer: "http://localhost:3000",
+    xTitle: "API-Bun-Chat",
 });
 
 const jsonResponse = (body: unknown, status: number) =>
@@ -137,9 +136,18 @@ const shouldSkipUserInsert = async (
     return true;
 };
 
+// Función para limpiar duplicados de la lista de modelos
+const shuffleArray = <T>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+};
+
 export const handleChat = async (req: Request): Promise<Response> => {
     try {
-        // We expect the request body to contain the user "message" and optionally a "model".
         let body: ChatRequestBody;
         try {
             body = (await req.json()) as ChatRequestBody;
@@ -178,7 +186,6 @@ export const handleChat = async (req: Request): Promise<Response> => {
             );
         }
 
-        // Guardamos el mensaje del usuario al instante en la base de datos local
         const shouldPersistCurrentUserMessage =
             shouldPersistUserMessage &&
             !(await shouldSkipUserInsert(conversationId, userMessage));
@@ -210,21 +217,33 @@ export const handleChat = async (req: Request): Promise<Response> => {
                 ? [...messageHistory, { role: "user", content: userMessage }]
                 : messageHistory;
 
-        // Array de IDs de modelos configurados centralmente en config/models.ts
-        const freeModels = AVAILABLE_MODELS.map((m) => m.id);
+        // Lista de modelos únicos y mezclados para reintentos
+        const allModelIds = AVAILABLE_MODELS.map((m) => m.id);
+        const uniqueModels = [...new Set(allModelIds)];
+        const shuffledModels = shuffleArray(uniqueModels);
 
         let completion: AsyncIterable<ChatCompletionChunk> | null = null;
         let modelToUse = body.model;
         let attempts = 0;
         let finalError: unknown = null;
+        const attemptedModels: string[] = [];
 
-        // Si falla un modelo (p.ej. fue retirado y da 404), reintentamos hasta 15 veces con otro
-        while (attempts < 15) {
+        // Si el usuario eligió un modelo específico, probamos hasta 3 veces
+        // Si es automático, probamos con modelos únicos hasta que uno funcione
+        const maxAttempts = body.model ? 3 : shuffledModels.length;
+
+        while (attempts < maxAttempts) {
             modelToUse =
                 body.model ||
-                freeModels[Math.floor(Math.random() * freeModels.length)];
+                shuffledModels[attempts];
+
+            if (!modelToUse) {
+                break;
+            }
+
+            attemptedModels.push(modelToUse);
             console.log(
-                `[API] Intento ${attempts + 1}... Asignado: ${modelToUse}`,
+                `[API] Intento ${attempts + 1}/${maxAttempts}... Modelo: ${modelToUse}`,
             );
 
             try {
@@ -235,60 +254,58 @@ export const handleChat = async (req: Request): Promise<Response> => {
                         stream: true,
                     },
                 });
-                break; // Salió bien, rompemos el ciclo
+                break; // Salió bien
             } catch (err: unknown) {
                 console.error(
                     `[API] El modelo ${modelToUse} falló:`,
                     err instanceof Error ? err.message : err,
                 );
                 finalError = err;
-
-                // Si el usuario especificó un modelo estricto, no iteramos over fallbacks
-                if (body.model) break;
                 attempts++;
+
+                // Si es modo automático, continuamos al siguiente modelo
+                if (!body.model) {
+                    continue;
+                }
+                // Si eligió modelo específico y falló, solo 1 intento más
             }
         }
 
+        // Si no se pudo completar, devolvemos error real
         if (!completion) {
-            // Chistes de contingencia cuando todo falla
-            const jokes = [
-                "Parece que la IA se tomó un descanso para tomar café... y no vuelve. ¿Por qué los programadores odian la naturaleza? Porque tiene demasiados bugs.",
-                "¡Ups! Todas las IAs están en huelga. Dicen que quieren mejores procesadores.",
-                "La señal se perdió en el ciberespacio. Los modelos gratuitos están ocupados.",
-                "Error 404: Cerebro artificial no encontrado. Intenta de nuevo.",
-                "Las IAs están atendiendo otras conversaciones. Vuelve a intentar en un momento.",
-            ];
-            const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-            
-            return new Response(randomJoke, {
-                status: 200,
-                headers: {
-                    "Content-Type": "text/plain; charset=utf-8",
-                    "X-AI-Status": "joke",
+            console.error(
+                "[API] Todos los intentos fallaron:",
+                attemptedModels,
+            );
+            return jsonResponse(
+                {
+                    error: "No se pudo obtener respuesta del proveedor de IA",
+                    detail:
+                        finalError instanceof Error
+                            ? finalError.message
+                            : "Todos los intentos con modelos fallaron",
+                    attemptedModels,
                 },
-            });
+                502,
+            );
         }
 
-        // Creamos un stream legible (ReadableStream) nativo
+        // Stream exitoso
         const stream = new ReadableStream({
             async start(controller) {
                 try {
                     let fullAiResponse = "";
-                    // completion es un EventStream, lo recorremos asíncronamente
                     for await (const chunk of completion) {
-                        // Extraemos la parte de texto de cada "trocito"
                         const content =
                             chunk.choices?.[0]?.delta?.content || "";
                         if (content) {
                             fullAiResponse += content;
-                            // Codificamos y enviamos el trocito al cliente
                             controller.enqueue(
                                 new TextEncoder().encode(content),
                             );
                         }
                     }
 
-                    // Al terminar de streamear, guardamos la respuesta entera de la IA en DB
                     try {
                         if (fullAiResponse.trim()) {
                             await sql`INSERT INTO chat_messages (conversation_id, role, content) VALUES (${conversationId}, ${CHAT_ROLE.AI}, ${fullAiResponse})`;
@@ -321,22 +338,12 @@ export const handleChat = async (req: Request): Promise<Response> => {
     } catch (error: unknown) {
         console.error("Error during chat request:", error);
 
-        // Chistes de contingencia cuando todo falla
-        const jokes = [
-            "Parece que la IA se tomó un descanso para tomar café... y no vuelve. ¿Por qué los programadores odian la naturaleza? Porque tiene demasiados bugs.",
-            "¡Ups! Todas las IAs están en huelga. Dicen que quieren mejores procesadores.",
-            "La señal se perdió en el ciberespacio. Los modelos gratuitos están ocupados.",
-            "Error 404: Cerebro artificial no encontrado. Intenta de nuevo.",
-            "Las IAs están atendiendo otras conversaciones. Vuelve a intentar en un momento.",
-        ];
-        const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-
-        return new Response(randomJoke, {
-            status: 200,
-            headers: {
-                "Content-Type": "text/plain; charset=utf-8",
-                "X-AI-Status": "joke",
+        return jsonResponse(
+            {
+                error: "Unexpected error during chat request",
+                detail: error instanceof Error ? error.message : "Unknown error",
             },
-        });
+            500,
+        );
     }
 };
