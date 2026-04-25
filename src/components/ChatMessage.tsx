@@ -25,38 +25,38 @@ export function ChatMessage({ message }: ChatMessageProps) {
             className={`flex ${isUser ? "justify-end" : "justify-start"}`}
         >
             <div
-                className={`max-w-[90%] rounded-[1.75rem] px-5 py-4 shadow-sm sm:max-w-[75%] ${
+                className={`max-w-[90%] rounded-[1.75rem] px-6 py-5 shadow-sm sm:max-w-[80%] transition-all ${
                     isUser
-                        ? "bg-stone-950 text-stone-50"
+                        ? "bg-linear-to-br from-cyan-600 to-blue-600 text-white shadow-cyan-500/20"
                         : message.error
-                          ? "border border-rose-200 bg-rose-50 text-rose-950"
-                          : "border border-stone-200 bg-white text-stone-800"
+                          ? "border border-rose-500/30 bg-rose-950/40 text-rose-100"
+                          : "border border-white/5 bg-slate-800/80 text-slate-200 backdrop-blur-md"
                 }`}
             >
-                <div className="mb-2 flex items-center justify-between gap-4 text-[0.7rem] font-semibold uppercase tracking-[0.24em]">
+                <div className="mb-3 flex items-center justify-between gap-6 text-[0.65rem] font-bold uppercase tracking-[0.25em]">
                     <span
                         className={
                             isUser
-                                ? "text-stone-300"
+                                ? "text-cyan-100"
                                 : message.error
-                                  ? "text-rose-500"
-                                  : "text-teal-700"
+                                  ? "text-rose-400"
+                                  : "text-cyan-400"
                         }
                     >
-                        {isUser ? "Tu mensaje" : message.error ? "Error" : "Asistente"}
+                        {isUser ? "Tú" : message.error ? "Error" : "Asistente IA"}
                     </span>
                     <span
                         className={
                             isUser
-                                ? "text-stone-400"
-                                : "text-stone-400"
+                                ? "text-cyan-200/70"
+                                : "text-slate-500"
                         }
                     >
                         {formatTime(message.created_at)}
                     </span>
                 </div>
 
-                <p className="whitespace-pre-wrap break-words text-sm leading-7 sm:text-[0.98rem]">
+                <p className="whitespace-pre-wrap wrap-break-word text-[0.95rem] leading-relaxed">
                     {message.content || (message.pending ? "..." : "")}
                 </p>
             </div>
