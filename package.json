@@ -5,7 +5,8 @@
     "private": true,
     "scripts": {
         "dev": "bun run --watch index.ts",
-        "build": "bun build index.ts --compile --minify --outfile api-bun"
+        "build": "bun build index.ts --compile --minify --outfile api-bun",
+        "start": "bun run index.ts"
     },
     "devDependencies": {
         "@types/bun": "latest"
