@@ -9,6 +9,12 @@ import type {
 const API_URL =
     import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
 
+interface ApiError {
+    error: string;
+    detail?: string;
+    attemptedModels?: string[];
+}
+
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(`${API_URL}${path}`, {
         ...init,
@@ -19,8 +25,21 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
     });
 
     if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || `Request failed with status ${response.status}`);
+        const contentType = response.headers.get("Content-Type");
+        const text = await response.text();
+        
+        // Intentar parsear como JSON si es JSON
+        if (contentType?.includes("application/json")) {
+            try {
+                const json = JSON.parse(text);
+                const errorInfo = json as ApiError;
+                throw new Error(errorInfo.detail || errorInfo.error || text);
+            } catch {
+                throw new Error(text);
+            }
+        }
+        
+        throw new Error(text || `Request failed with status ${response.status}`);
     }
 
     if (response.status === 204) {
@@ -75,8 +94,22 @@ export async function sendChat(
     });
 
     if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || `Chat request failed with status ${response.status}`);
+        const contentType = response.headers.get("Content-Type");
+        const text = await response.text();
+        
+        // Intentar parsear como JSON para obtener el error detallado
+        if (contentType?.includes("application/json")) {
+            try {
+                const json = JSON.parse(text);
+                const errorInfo = json as ApiError;
+                throw new Error(errorInfo.detail || errorInfo.error || text);
+            } catch (parseError) {
+                if (parseError instanceof Error) throw parseError;
+                throw new Error(text);
+            }
+        }
+        
+        throw new Error(text || `Chat request failed with status ${response.status}`);
     }
 
     if (!response.body) {
