@@ -250,16 +250,23 @@ export const handleChat = async (req: Request): Promise<Response> => {
         }
 
         if (!completion) {
-            return jsonResponse(
-                {
-                    error: "No se pudo obtener respuesta del proveedor de IA",
-                    detail:
-                        finalError instanceof Error
-                            ? finalError.message
-                            : "Todos los intentos con modelos gratuitos fallaron.",
+            // Chistes de contingencia cuando todo falla
+            const jokes = [
+                "Parece que la IA se tomó un descanso para tomar café... y no vuelve. ¿Por qué los programadores odian la naturaleza? Porque tiene demasiados bugs.",
+                "¡Ups! Todas las IAs están en huelga. Dicen que quieren mejores procesadores.",
+                "La señal se perdió en el ciberespacio. Los modelos gratuitos están ocupados.",
+                "Error 404: Cerebro artificial no encontrado. Intenta de nuevo.",
+                "Las IAs están atendiendo otras conversaciones. Vuelve a intentar en un momento.",
+            ];
+            const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+            
+            return new Response(randomJoke, {
+                status: 200,
+                headers: {
+                    "Content-Type": "text/plain; charset=utf-8",
+                    "X-AI-Status": "joke",
                 },
-                502,
-            );
+            });
         }
 
         // Creamos un stream legible (ReadableStream) nativo
@@ -314,12 +321,22 @@ export const handleChat = async (req: Request): Promise<Response> => {
     } catch (error: unknown) {
         console.error("Error during chat request:", error);
 
-        return jsonResponse(
-            {
-                error: "Unexpected error during chat request",
-                detail: error instanceof Error ? error.message : "Unknown error",
+        // Chistes de contingencia cuando todo falla
+        const jokes = [
+            "Parece que la IA se tomó un descanso para tomar café... y no vuelve. ¿Por qué los programadores odian la naturaleza? Porque tiene demasiados bugs.",
+            "¡Ups! Todas las IAs están en huelga. Dicen que quieren mejores procesadores.",
+            "La señal se perdió en el ciberespacio. Los modelos gratuitos están ocupados.",
+            "Error 404: Cerebro artificial no encontrado. Intenta de nuevo.",
+            "Las IAs están atendiendo otras conversaciones. Vuelve a intentar en un momento.",
+        ];
+        const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+
+        return new Response(randomJoke, {
+            status: 200,
+            headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "X-AI-Status": "joke",
             },
-            500,
-        );
+        });
     }
 };
