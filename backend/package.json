@@ -1,0 +1,20 @@
+{
+    "name": "api-bun",
+    "module": "index.ts",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "bun run --watch index.ts",
+        "build": "bun build index.ts --compile --minify --outfile api-bun",
+        "start": "bun run index.ts"
+    },
+    "devDependencies": {
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@openrouter/sdk": "^0.9.11"
+    }
+}
