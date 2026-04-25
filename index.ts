@@ -59,6 +59,23 @@ const server = Bun.serve({
         //     return withCors(new Response(Bun.file("./public/rest-test.html")));
         // }
 
+        if (url.pathname === "/" && req.method === "GET") {
+            return withCors(
+                new Response(
+                    JSON.stringify({
+                        status: "ok",
+                        message: "API is running",
+                    }),
+                    {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    },
+                ),
+            );
+        }
+
         if (url.pathname === "/health" && req.method === "GET") {
             return withCors(
                 new Response(

@@ -3,38 +3,44 @@ export interface ModelConfig {
     label: string;
 }
 
-// Modelos gratuitos verificados que funcionan en 2026
+// Modelos gratuitos verificados en OpenRouter — actualizado 2026-04-25
 export const AVAILABLE_MODELS: ModelConfig[] = [
-    // Los más estables y rápidos
-    { id: "openrouter/free", label: "✨ Auto Elige (Recomendado)" },
-    { id: "deepseek/deepseek-chat-v3-0324:free", label: "DeepSeek V3 (Mejor General)" },
-    { id: "deepseek/deepseek-r1:free", label: "DeepSeek R1 (Razonamiento)" },
-    { id: "meta-llama/llama-4-maverick:free", label: "Meta Llama 4 Maverick" },
-    
-    // Qwen - muy bons para coding
-    { id: "qwen/qwen3-235b-a22b:free", label: "Qwen 3 (235B Coding)" },
-    { id: "qwen/qwen3-32b-a3b-instruct:free", label: "Qwen 3 (32B)" },
-    { id: "qwen/qwen3-4b:free", label: "Qwen 3 (4B Rápido)" },
-    
-    // Mistral - eficiente
-    { id: "mistralai/mistral-small-3.1-24b-instruct:free", label: "Mistral Small 3.1" },
-    
-    // NVIDIA
-    { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "NVIDIA Nemotron 3 Super" },
-    { id: "nvidia/nemotron-nano-9b-v2:free", label: "NVIDIA Nemotron Nano (9B)" },
-    
-    // Google Gemma
-    { id: "google/gemma-3-27b-it:free", label: "Google Gemma 3 (27B)" },
-    { id: "google/gemma-3-12b-it:free", label: "Google Gemma 3 (12B)" },
-    { id: "google/gemma-3-4b-it:free", label: "Google Gemma 3 (4B)" },
-    
-    // Meta Llama
-    { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Meta Llama 3.3 (70B)" },
-    { id: "meta-llama/llama-3.2-3b-instruct:free", label: "Meta Llama 3.2 (3B)" },
-    
-    // Otros
-    { id: "minimax/minimax-m2.5:free", label: "MiniMax M2.5" },
-    { id: "stepfun/step-3.5-flash:free", label: "StepFun 3.5 Flash" },
-    { id: "z-ai/glm-4.5-air:free", label: "Z-AI GLM-4.5 Air" },
-    { id: "liquid/lfm-2.5-1.2b-instruct:free", label: "Liquid LFM 2.5" },
+    // --- Top tier: los más potentes ---
+    { id: "nousresearch/hermes-3-llama-3.1-405b:free", label: "🏆 Hermes 3 (405B — Mejor General)" },
+    { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "⚡ NVIDIA Nemotron 3 Super (120B)" },
+    { id: "openai/gpt-oss-120b:free", label: "🧠 GPT-OSS (120B)" },
+    { id: "meta-llama/llama-3.3-70b-instruct:free", label: "🦙 Meta Llama 3.3 (70B)" },
+
+    // --- Coding / razonamiento ---
+    { id: "qwen/qwen3-coder:free", label: "💻 Qwen 3 Coder" },
+    { id: "qwen/qwen3-next-80b-a3b-instruct:free", label: "🔬 Qwen 3 Next (80B)" },
+    { id: "liquid/lfm-2.5-1.2b-thinking:free", label: "🤔 Liquid LFM 2.5 Thinking" },
+
+    // --- Google Gemma 4 ---
+    { id: "google/gemma-4-26b-a4b-it:free", label: "✨ Google Gemma 4 (26B)" },
+
+    // --- Google Gemma 3 ---
+    { id: "google/gemma-3-27b-it:free", label: "💎 Google Gemma 3 (27B)" },
+    { id: "google/gemma-3-12b-it:free", label: "💎 Google Gemma 3 (12B)" },
+    { id: "google/gemma-3-4b-it:free", label: "💎 Google Gemma 3 (4B Rápido)" },
+    { id: "google/gemma-3n-e4b-it:free", label: "💎 Google Gemma 3N (4B Edge)" },
+    { id: "google/gemma-3n-e2b-it:free", label: "💎 Google Gemma 3N (2B Edge)" },
+
+    // --- NVIDIA Nemotron ---
+    { id: "nvidia/nemotron-3-nano-30b-a3b:free", label: "🟢 NVIDIA Nemotron 3 Nano (30B)" },
+    { id: "nvidia/nemotron-nano-12b-v2-vl:free", label: "🟢 NVIDIA Nemotron Nano 12B VL" },
+    { id: "nvidia/nemotron-nano-9b-v2:free", label: "🟢 NVIDIA Nemotron Nano (9B)" },
+
+    // --- OpenAI OSS ---
+    { id: "openai/gpt-oss-20b:free", label: "🧠 GPT-OSS (20B)" },
+
+    // --- Otros ---
+    { id: "inclusionai/ling-2.6-1t:free", label: "🌐 InclusionAI Ling 2.6 (1T)" },
+    { id: "inclusionai/ling-2.6-flash:free", label: "🌐 InclusionAI Ling 2.6 Flash" },
+    { id: "minimax/minimax-m2.5:free", label: "📱 MiniMax M2.5" },
+    { id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", label: "🐬 Dolphin Mistral (24B)" },
+    { id: "tencent/hy3-preview:free", label: "🔵 Tencent HY3 Preview" },
+    { id: "z-ai/glm-4.5-air:free", label: "🌊 Z-AI GLM-4.5 Air" },
+    { id: "liquid/lfm-2.5-1.2b-instruct:free", label: "💧 Liquid LFM 2.5 Instruct" },
+    { id: "meta-llama/llama-3.2-3b-instruct:free", label: "🦙 Meta Llama 3.2 (3B)" },
 ];

@@ -225,17 +225,20 @@ export const handleChat = async (req: Request): Promise<Response> => {
         const shuffledModels = shuffleArray(uniqueModels);
 
         let completion: AsyncIterable<ChatCompletionChunk> | null = null;
-        let modelToUse = body.model;
         let attempts = 0;
         let finalError: unknown = null;
         const attemptedModels: string[] = [];
 
-        // Si el usuario eligió un modelo específico, probamos hasta 3 veces
-        // Si es automático, probamos con modelos únicos hasta que uno funcione
-        const maxAttempts = body.model ? 10 : shuffledModels.length;
+        // Siempre mezclamos los modelos para tener fallback
+        const modelsToTry = body.model 
+            ? [body.model, ...shuffledModels.filter(m => m !== body.model)]
+            : shuffledModels;
+        
+        const maxAttempts = Math.min(modelsToTry.length, 15);
+        let modelToUse = "";
 
         while (attempts < maxAttempts) {
-            modelToUse = body.model || shuffledModels[attempts];
+            modelToUse = modelsToTry[attempts];
 
             if (!modelToUse) {
                 break;
@@ -263,11 +266,7 @@ export const handleChat = async (req: Request): Promise<Response> => {
                 finalError = err;
                 attempts++;
 
-                // Si es modo automático, continuamos al siguiente modelo
-                if (!body.model) {
-                    continue;
-                }
-                // Si eligió modelo específico y falló, solo 1 intento más
+                // Siempre continuamos al siguiente modelo
             }
         }
 
