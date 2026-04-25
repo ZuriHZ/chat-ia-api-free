@@ -82,18 +82,15 @@ export function ConversationList({
 
                         return (
                             <div
-                                className={`group rounded-[1.5rem] border px-4 py-4 transition ${
+                                className={`group rounded-[1.5rem] border px-4 py-4 transition cursor-pointer ${
                                     isActive
                                         ? "border-teal-700 bg-teal-950 text-white shadow-[0_16px_45px_-30px_rgba(15,118,110,0.75)]"
-                                        : "border-stone-200 bg-white/80 text-stone-800 hover:border-stone-300"
+                                        : "border-stone-200 bg-white/80 text-stone-800 hover:border-stone-300 hover:bg-white"
                                 }`}
                                 key={conversation.id}
+                                onClick={() => onSelectConversation(conversation.id)}
                             >
-                                <button
-                                    className="w-full text-left"
-                                    onClick={() => onSelectConversation(conversation.id)}
-                                    type="button"
-                                >
+                                <div className="w-full text-left">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
                                             <p className="truncate text-sm font-semibold">
@@ -112,7 +109,7 @@ export function ConversationList({
                                             </p>
                                         </div>
                                     </div>
-                                </button>
+                                </div>
 
                                 <button
                                     className={`mt-4 inline-flex rounded-full px-3 py-2 text-xs font-medium transition ${
@@ -120,7 +117,8 @@ export function ConversationList({
                                             ? "bg-white/12 text-white hover:bg-white/20"
                                             : "bg-stone-100 text-stone-700 hover:bg-stone-200"
                                     }`}
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.stopPropagation();
                                         void onDeleteConversation(conversation.id);
                                     }}
                                     type="button"
