@@ -65,7 +65,9 @@ const normalizeConversationId = (
     return normalized;
 };
 
-const mapStoredRoleToApiRole = (role: string): ChatApiMessage["role"] | null => {
+const mapStoredRoleToApiRole = (
+    role: string,
+): ChatApiMessage["role"] | null => {
     if (role === CHAT_ROLE.USER) {
         return "user";
     }
@@ -141,7 +143,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
     }
     return shuffled;
 };
@@ -230,12 +232,10 @@ export const handleChat = async (req: Request): Promise<Response> => {
 
         // Si el usuario eligió un modelo específico, probamos hasta 3 veces
         // Si es automático, probamos con modelos únicos hasta que uno funcione
-        const maxAttempts = body.model ? 3 : shuffledModels.length;
+        const maxAttempts = body.model ? 10 : shuffledModels.length;
 
         while (attempts < maxAttempts) {
-            modelToUse =
-                body.model ||
-                shuffledModels[attempts];
+            modelToUse = body.model || shuffledModels[attempts];
 
             if (!modelToUse) {
                 break;
@@ -341,7 +341,8 @@ export const handleChat = async (req: Request): Promise<Response> => {
         return jsonResponse(
             {
                 error: "Unexpected error during chat request",
-                detail: error instanceof Error ? error.message : "Unknown error",
+                detail:
+                    error instanceof Error ? error.message : "Unknown error",
             },
             500,
         );
