@@ -1,0 +1,62 @@
+import { ChatContainer } from "./components/ChatContainer";
+import { ConversationList } from "./components/ConversationList";
+import { useChat } from "./hooks/useChat";
+
+function App() {
+    const {
+        canRetry,
+        conversations,
+        currentConversationId,
+        error,
+        handleCreateConversation,
+        handleDeleteConversation,
+        handleRetry,
+        handleSelectConversation,
+        handleSendMessage,
+        isBootstrapping,
+        isCreatingConversation,
+        isLoadingMessages,
+        isStreaming,
+        messages,
+        models,
+        modelsLoading,
+        selectedModel,
+        setSelectedModel,
+    } = useChat();
+
+    return (
+        <div className="app-shell min-h-screen">
+            <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-4 lg:flex-row lg:px-6">
+                <ConversationList
+                    conversations={conversations}
+                    currentConversationId={currentConversationId}
+                    isCreatingConversation={isCreatingConversation}
+                    isLoading={isBootstrapping}
+                    onCreateConversation={handleCreateConversation}
+                    onDeleteConversation={handleDeleteConversation}
+                    onSelectConversation={handleSelectConversation}
+                />
+
+                <main className="glass-panel flex min-h-[78vh] flex-1 flex-col overflow-hidden rounded-[2rem] border border-stone-200/70">
+                    <ChatContainer
+                        canRetry={canRetry}
+                        currentConversationId={currentConversationId}
+                        error={error}
+                        isBootstrapping={isBootstrapping}
+                        isLoadingMessages={isLoadingMessages}
+                        isStreaming={isStreaming}
+                        messages={messages}
+                        models={models}
+                        modelsLoading={modelsLoading}
+                        onModelChange={setSelectedModel}
+                        onRetry={handleRetry}
+                        onSubmit={handleSendMessage}
+                        selectedModel={selectedModel}
+                    />
+                </main>
+            </div>
+        </div>
+    );
+}
+
+export default App;

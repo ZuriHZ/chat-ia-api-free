@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+    color: #1c1917;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    font-synthesis: none;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(251, 191, 36, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(20, 184, 166, 0.18), transparent 22%),
+        linear-gradient(180deg, #fefce8 0%, #fff7ed 40%, #fafaf9 100%);
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+.app-shell {
+    position: relative;
+}
+
+.app-shell::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.35) 1px, transparent 1px);
+    background-position: center;
+    background-size: 32px 32px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 95%);
+}
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.74);
+    backdrop-filter: blur(18px);
+}
+
+.chat-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 113, 108, 0.45) transparent;
+}
+
+.chat-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.chat-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-scroll::-webkit-scrollbar-thumb {
+    background: rgba(120, 113, 108, 0.35);
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+}
