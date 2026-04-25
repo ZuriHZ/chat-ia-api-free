@@ -2,6 +2,38 @@ import { OpenRouter } from "@openrouter/sdk";
 import { AVAILABLE_MODELS } from "../config/models";
 import { sql } from "../config/db";
 
+const CHAT_ROLE = {
+    USER: "user",
+    AI: "ai",
+} as const;
+
+type ChatRole = (typeof CHAT_ROLE)[keyof typeof CHAT_ROLE];
+
+interface ChatRequestBody {
+    message?: string;
+    model?: string;
+    conversationId?: number | string;
+    persistUserMessage?: boolean;
+}
+
+interface ChatHistoryRow {
+    role: string;
+    content: string;
+}
+
+interface ChatApiMessage {
+    role: "user" | "assistant";
+    content: string;
+}
+
+interface ChatCompletionChunk {
+    choices?: Array<{
+        delta?: {
+            content?: string | null;
+        };
+    }>;
+}
+
 // Initialize the OpenRouter SDK
 const openRouter = new OpenRouter({
     // Fallback to empty string if missing, though it requires api key
@@ -10,54 +42,181 @@ const openRouter = new OpenRouter({
     xTitle: "API-Bun-Chat", // Optional, name of your app
 });
 
+const jsonResponse = (body: unknown, status: number) =>
+    new Response(JSON.stringify(body), {
+        status,
+        headers: { "Content-Type": "application/json" },
+    });
+
+const normalizeConversationId = (
+    conversationId: number | string | undefined,
+): number | null => {
+    if (conversationId === undefined) {
+        return null;
+    }
+
+    const normalized = Number(conversationId);
+
+    if (Number.isNaN(normalized) || normalized <= 0) {
+        throw new Error(
+            'The "conversationId" field must be a valid positive number',
+        );
+    }
+
+    return normalized;
+};
+
+const mapStoredRoleToApiRole = (role: string): ChatApiMessage["role"] | null => {
+    if (role === CHAT_ROLE.USER) {
+        return "user";
+    }
+
+    if (role === CHAT_ROLE.AI) {
+        return "assistant";
+    }
+
+    return null;
+};
+
+const getConversationMessages = async (
+    conversationId: number,
+): Promise<ChatApiMessage[]> => {
+    const rows = await sql<ChatHistoryRow[]>`
+        SELECT role, content
+        FROM chat_messages
+        WHERE conversation_id = ${conversationId}
+        ORDER BY created_at ASC, id ASC
+    `;
+
+    return rows
+        .map((row) => ({
+            role: mapStoredRoleToApiRole(row.role),
+            content: row.content,
+        }))
+        .filter(
+            (
+                row,
+            ): row is {
+                role: ChatApiMessage["role"];
+                content: string;
+            } => row.role !== null,
+        );
+};
+
+const shouldSkipUserInsert = async (
+    conversationId: number | null,
+    userMessage: string,
+): Promise<boolean> => {
+    if (conversationId === null) {
+        return false;
+    }
+
+    const lastMessages = await sql<
+        Array<{ role: string; content: string; created_at: string }>
+    >`
+        SELECT role, content, created_at
+        FROM chat_messages
+        WHERE conversation_id = ${conversationId}
+        ORDER BY created_at DESC, id DESC
+        LIMIT 2
+    `;
+
+    const [latestMessage, previousMessage] = lastMessages;
+
+    if (
+        latestMessage?.role !== CHAT_ROLE.USER ||
+        latestMessage.content !== userMessage
+    ) {
+        return false;
+    }
+
+    if (previousMessage?.role === CHAT_ROLE.AI) {
+        return false;
+    }
+
+    return true;
+};
+
 export const handleChat = async (req: Request): Promise<Response> => {
     try {
         // We expect the request body to contain the user "message" and optionally a "model".
-        let body: { message?: string; model?: string };
+        let body: ChatRequestBody;
         try {
-            body = (await req.json()) as { message?: string; model?: string };
-        } catch (e) {
-            return new Response(
-                JSON.stringify({
-                    error: "Invalid JSON or empty body received",
-                }),
+            body = (await req.json()) as ChatRequestBody;
+        } catch {
+            return jsonResponse(
                 {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
+                    error: "Invalid JSON or empty body received",
                 },
+                400,
             );
         }
         const userMessage = body?.message;
+        const shouldPersistUserMessage = body?.persistUserMessage !== false;
 
         if (!userMessage) {
-            return new Response(
-                JSON.stringify({
-                    error: 'The "message" field is required in the body',
-                }),
+            return jsonResponse(
                 {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
+                    error: 'The "message" field is required in the body',
                 },
+                400,
+            );
+        }
+
+        let conversationId: number | null;
+        try {
+            conversationId = normalizeConversationId(body?.conversationId);
+        } catch (error) {
+            return jsonResponse(
+                {
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : "Invalid conversationId",
+                },
+                400,
             );
         }
 
         // Guardamos el mensaje del usuario al instante en la base de datos local
-        try {
-            await sql`INSERT INTO chat_messages (role, content) VALUES ('user', ${userMessage})`;
-        } catch (dbErr: any) {
-            console.error(
-                "[DB] Error al guardar mensaje de usuario:",
-                dbErr.message,
-            );
+        const shouldPersistCurrentUserMessage =
+            shouldPersistUserMessage &&
+            !(await shouldSkipUserInsert(conversationId, userMessage));
+
+        if (shouldPersistCurrentUserMessage) {
+            try {
+                await sql`INSERT INTO chat_messages (conversation_id, role, content) VALUES (${conversationId}, ${CHAT_ROLE.USER}, ${userMessage})`;
+            } catch (dbErr: unknown) {
+                console.error(
+                    "[DB] Error al guardar mensaje de usuario:",
+                    dbErr instanceof Error ? dbErr.message : dbErr,
+                );
+            }
         }
+
+        const messageHistory: ChatApiMessage[] =
+            conversationId !== null
+                ? await getConversationMessages(conversationId)
+                : [{ role: "user", content: userMessage }];
+
+        const historyWithCurrentMessage: ChatApiMessage[] =
+            conversationId !== null &&
+            !messageHistory.some(
+                (message, index) =>
+                    index === messageHistory.length - 1 &&
+                    message.role === "user" &&
+                    message.content === userMessage,
+            )
+                ? [...messageHistory, { role: "user", content: userMessage }]
+                : messageHistory;
 
         // Array de IDs de modelos configurados centralmente en config/models.ts
         const freeModels = AVAILABLE_MODELS.map((m) => m.id);
 
-        let completion;
+        let completion: AsyncIterable<ChatCompletionChunk> | null = null;
         let modelToUse = body.model;
         let attempts = 0;
-        let finalError: any = null;
+        let finalError: unknown = null;
 
         // Si falla un modelo (p.ej. fue retirado y da 404), reintentamos hasta 15 veces con otro
         while (attempts < 15) {
@@ -72,15 +231,15 @@ export const handleChat = async (req: Request): Promise<Response> => {
                 completion = await openRouter.chat.send({
                     chatGenerationParams: {
                         model: modelToUse,
-                        messages: [{ role: "user", content: userMessage }],
+                        messages: historyWithCurrentMessage,
                         stream: true,
                     },
                 });
                 break; // Salió bien, rompemos el ciclo
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error(
                     `[API] El modelo ${modelToUse} falló:`,
-                    err?.message || err,
+                    err instanceof Error ? err.message : err,
                 );
                 finalError = err;
 
@@ -91,9 +250,15 @@ export const handleChat = async (req: Request): Promise<Response> => {
         }
 
         if (!completion) {
-            throw (
-                finalError ||
-                new Error("Todos los intentos con modelos gratuitos fallaron.")
+            return jsonResponse(
+                {
+                    error: "No se pudo obtener respuesta del proveedor de IA",
+                    detail:
+                        finalError instanceof Error
+                            ? finalError.message
+                            : "Todos los intentos con modelos gratuitos fallaron.",
+                },
+                502,
             );
         }
 
@@ -103,7 +268,7 @@ export const handleChat = async (req: Request): Promise<Response> => {
                 try {
                     let fullAiResponse = "";
                     // completion es un EventStream, lo recorremos asíncronamente
-                    for await (const chunk of completion as any) {
+                    for await (const chunk of completion) {
                         // Extraemos la parte de texto de cada "trocito"
                         const content =
                             chunk.choices?.[0]?.delta?.content || "";
@@ -119,12 +284,12 @@ export const handleChat = async (req: Request): Promise<Response> => {
                     // Al terminar de streamear, guardamos la respuesta entera de la IA en DB
                     try {
                         if (fullAiResponse.trim()) {
-                            await sql`INSERT INTO chat_messages (role, content) VALUES ('ai', ${fullAiResponse})`;
+                            await sql`INSERT INTO chat_messages (conversation_id, role, content) VALUES (${conversationId}, ${CHAT_ROLE.AI}, ${fullAiResponse})`;
                         }
-                    } catch (dbErr: any) {
+                    } catch (dbErr: unknown) {
                         console.error(
                             "[DB] Error al guardar respuesta de IA:",
-                            dbErr.message,
+                            dbErr instanceof Error ? dbErr.message : dbErr,
                         );
                     }
 
@@ -142,27 +307,19 @@ export const handleChat = async (req: Request): Promise<Response> => {
                 "Content-Type": "text/plain; charset=utf-8",
                 "Transfer-Encoding": "chunked",
                 "Cache-Control": "no-cache",
+                "X-Conversation-Id": conversationId?.toString() ?? "",
+                "X-Model-Used": modelToUse ?? "",
             },
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error during chat request:", error);
 
-        // En lugar de un error frío, devolvemos un chiste si los modelos fallan
-        const jokes = [
-            "Parece que la IA se tomó un descanso para tomar café... y no vuelve. ¿Por qué los programadores odian la naturaleza? Porque tiene demasiados bugs.",
-            "¡Ups! Todas las IAs están en huelga. Dicen que quieren mejores procesadores. ¿Qué es un terapeuta? 1024 gigapeutas.",
-            "La señal se perdió en el ciberespacio. Los modelos gratuitos están dormidos. ¿Qué le dice un GIF a un JPG? '¡Anímate hombre!'",
-            "Houston, tenemos un problema. Las IAs no responden. ¿Cómo se despiden los programadores? '¡C-sharp!'",
-            "Error 404: Cerebro artificial no encontrado. Intenta de nuevo. ¿Qué es un objeto? Una instancia de una clase que se porta mal.",
-        ];
-        const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-
-        return new Response(randomJoke, {
-            status: 200,
-            headers: {
-                "Content-Type": "text/plain; charset=utf-8",
-                "X-AI-Status": "joke",
+        return jsonResponse(
+            {
+                error: "Unexpected error during chat request",
+                detail: error instanceof Error ? error.message : "Unknown error",
             },
-        });
+            500,
+        );
     }
 };
