@@ -1,72 +1,65 @@
-# 🚀 Dialogue - API Bun Chat & PostgreSQL
+# 🚀 Chat IA - API Bun & React (Monorepo)
 
-Link de Produccion : <https://api-con-bun-backend-2wjt1i-155179-157-254-174-103.traefik.me/>
+Este es un proyecto unificado que combina un **Backend** ultrarrápido con Bun y un **Frontend** moderno con React + Vite.
 
-Este proyecto es una API y aplicación web minimalista de chat impulsada por IA, construida desde cero utilizando **Bun**. Está diseñada para ser extremadamente rápida, ligera y altamente resiliente en producción.
+## 📁 Estructura del Proyecto
 
-## 🛠️ Tecnologías y Arquitectura
+El proyecto está organizado como un **Monorepo**:
 
-- **Runtime & Backend:** [Bun](https://bun.sh/). Proyecto creado 100% nativo utilizando `Bun.serve` para manejar peticiones HTTP y streaming. Cero dependencias pesadas como Express o NestJS.
-- **Base de Datos:** **PostgreSQL**. Conectado de la forma más rápida posible usando el nuevo wrapper nativo interconstruido de Bun (`bun:sql`), deshaciéndonos de compiladores ORM masivos (como Prisma o TypeORM).
-- **Modelos de Inteligencia Artificial:** [OpenRouter](https://openrouter.ai/) (SDK oficial). El proyecto posee un sistema robusto de **Load Balancing & Fallback** que rota inteligentemente entre los mejores modelos gratuitos del mercado (DeepSeek, Llama, Gemma, Phi, Qwen, etc.). Si un modelo está saturado (Status 429), el sistema salta automáticamente al siguiente en la lista sin que el usuario lo note. Si caen todos, responde con humor nativo.
-- **Frontend UI:** Vanilla HTML/CSS/JS con un concepto visual de diseño "Editorial Minimalista" enfocado a lectura fina (basado en fuentes _Instrument Serif_ y paleta OKLCH en rojo y papel). Soporte nativo para lectura asíncrona por **Chunks (Streaming)** para simular la escritura humana en tiempo real.
-- **REST Architecture:** Además del chat, incorpora un portal de debug y administración en `/rest` permitiendo hacer test rápidos directamente a las tablas SQL de `users`, `conversations` y `messages`.
+- **`/backend`**: API construida 100% nativa con Bun, PostgreSQL (o SQLite) y OpenRouter.
+- **`/frontend`**: Aplicación web construida con React 19, Vite, TailwindCSS y Zustand.
 
----
+## 🛠️ Tecnologías
 
-## 🌩️ Despliegue en Producción (Dokploy & Cubepath)
+### Backend (Bun)
 
-Toda la arquitectura del proyecto fue planificada para vivir dentro de administradores de Docker en la nube, específicamente **Dokploy** (hospedado en este caso en VPS como **Cubepath**).
+- **Runtime:** Bun.serve (nativo)
+- **DB:** PostgreSQL (nativo `bun:sql`) o SQLite.
+- **IA:** OpenRouter con sistema de Load Balancing & Fallback automático.
 
-### 1. Preparar la Base de Datos
-
-Dentro de tu panel de Dokploy, crea un servicio individual de **PostgreSQL**. Toma nota de sus variables autogeneradas de red (Contraseña, Usuario, etc).
-
-### 2. Variables de Entorno en el Proyecto (.env)
-
-Una vez que subas tu código al módulo de Aplicaciones en Dokploy, inyecta las siguientes variables en la pestaña de `Environment`:
-
-```ini
-OPENROUTER_API_KEY="sk-or-v1-tu-llave-secreta..."
-# ¡Importante! En producción, como PostgreSQL está en el MISMO Dokploy,
-# usa la "Internal Connection URL" para evitar latencia de la red abierta.
-DATABASE_URL="postgres://tu_usuario:tu_contraseña@nombre_del_db_container_interno:5432/tu_db"
-```
-
-### 3. Migraciones "Invisibles"
-
-La filosofía de este backend es ser "Plug & Play". No hay scripts secundarios que ejecutar durante el build (`npm run build` o `migrate`).
-Al encenderse la aplicación, `config/db.ts` interceptará la conexión de Postgre y, en un microsegundo, inyectará y creará todas las relaciones SQL (Tablas) de forma silenciosa si el servidor Dokploy es nuevo.
+### Frontend (React)
+- **Framework:** Vite + React 19.
+- **Styling:** TailwindCSS v4 + MagicUI.
+- **State:** Zustand.
+- **Features:** Streaming de chunks (escritura en tiempo real), Markdown, Glassmorphism.
 
 ---
 
-## 💻 Desarrollo Local (Sin Docker)
+## 💻 Desarrollo Local
 
-Si quieres agregar features nuevas mientras estás en tu ordenador personal (Windows/Mac) y no quieres complicarte apuntando a tu servidor Dokploy remoto ni instalando Postgre, usa este simple truco gracias a la versatilidad natural de Bun SQL:
+Para correr todo el proyecto al mismo tiempo desde la raíz:
 
-En tu `.env` de VS Code local reemplaza la URL de base de datos a un archivo de SQLite plano:
-
-```ini
-DATABASE_URL="sqlite://chat_desarrollo.sqlite"
-```
-
-Bun detectará el prefijo `sqlite://`, cambiará su motor interno, e inicializará el archivo local automáticamente para que sigas codeando y jugando con la Base de datos sin dependencias.
-
-### Comandos Locales:
-
+### 1. Instalar dependencias
 ```bash
-# Instalar dependencias
+# Instala dependencias del root y backend
 bun install
-
-# Arrancar el servidor en modo hot-reload
-bun --watch ./index.ts
+# Instala dependencias del frontend (si usas pnpm)
+cd frontend && pnpm install
 ```
 
-## 📂 Mapa del Proyecto
+### 2. Configurar Variables (.env)
+Crea un archivo `.env` dentro de la carpeta `backend/` con:
+```ini
+OPENROUTER_API_KEY="tu_llave_aqui"
+DATABASE_URL="postgres://usuario:pass@host:5432/db" # O sqlite://chat.db
+```
 
-- `/index.ts` — Router HTTP y motor principal.
-- `/config/db.ts` — Inicializador C de PostgreSQL/SQLite nativo y creación de esquemas SQL.
-- `/config/models.ts` — Menú de configuraciones de Array para Modelos IA OpenRouter. Centralizando aquí podemos agregar nuevos modelos que asomen en el mercado sin tocar el código duro.
-- `/controllers/chatController.ts` — Cerebro del Chatbot. Generador de promesas asíncronas de Stream y Balanceador de carga. Integra guardado de historiales interceptando la escritura a la base de datos de manera limpia y veloz.
-- `/controllers/restController.ts` — Interfaz REST pura controlando `users`, `conversations` y `messages`.
-- `/public/` — Estáticos, diseño web y tester API integrado minimalista.
+### 3. Arrancar el proyecto
+```bash
+# Desde la raíz, arranca backend y frontend en paralelo
+bun dev
+```
+
+### Otros comandos:
+- `bun run dev:back`: Solo el backend.
+- `bun run dev:front`: Solo el frontend.
+- `bun run build:all`: Compila ambos para producción.
+
+---
+
+## 🌩️ Despliegue
+
+Diseñado para **Dokploy** o cualquier entorno Docker. El backend se autogestiona creando las tablas necesarias al iniciar (`initDB`).
+
+---
+Creado por @ZuriHZ

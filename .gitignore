@@ -1,35 +1,28 @@
-# dependencies (bun install)
+# dependencies
 node_modules
+*/node_modules
 
 # output
-out
 dist
-*.tgz
-
-# code coverage
-coverage
-*.lcov
+frontend/dist
+backend/out
+backend/dist
 
 # logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+*.log
+backend/*.log
 
-# dotenv environment variable files
+# environment
 .env
-.env.development.local
-.env.test.local
-.env.production.local
 .env.local
+*/.env
+*/.env.local
 
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
+# IDEs
 .idea
+.vscode
+*.sublime-project
 
-# Finder (MacOS) folder config
+# OS files
 .DS_Store
-doc/Análisis de GitHub Actions para los Proyectos ZuriHZ_Api-bun y ZuriHZ_blog-brutal.md
+Thumbs.db
