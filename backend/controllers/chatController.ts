@@ -250,12 +250,12 @@ export const handleChat = async (req: Request): Promise<Response> => {
         const attemptedModels: string[] = [];
 
         // Siempre mezclamos los modelos para tener fallback
-        const modelsToTry = body.model 
-            ? [body.model, ...shuffledModels.filter(m => m !== body.model)]
+        const modelsToTry = body.model
+            ? [body.model, ...shuffledModels.filter((m) => m !== body.model)]
             : shuffledModels;
-        
+
         const maxAttempts = Math.min(modelsToTry.length, 15);
-        let modelToUse = "";
+        let modelToUse: string | undefined;
 
         while (attempts < maxAttempts) {
             modelToUse = modelsToTry[attempts];
