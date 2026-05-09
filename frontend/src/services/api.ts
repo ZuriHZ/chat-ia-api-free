@@ -79,7 +79,7 @@ export function getMessages(conversationId: number) {
 export async function sendChat(
     request: ChatStreamRequest,
 ): Promise<ChatStreamResult> {
-    const response = await fetch(`${API_URL}/chat`, {
+    const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
