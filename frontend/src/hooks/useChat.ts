@@ -45,12 +45,6 @@ function createConversationTitle(message: string) {
     return compact.length > 44 ? `${compact.slice(0, 44)}...` : compact;
 }
 
-interface ApiErrorResponse {
-    error: string;
-    code?: string;
-    detail?: string;
-}
-
 function formatError(error: unknown): string {
     if (error instanceof DOMException && error.name === "AbortError") {
         return "La solicitud fue cancelada antes de completarse.";
