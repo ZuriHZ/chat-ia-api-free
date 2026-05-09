@@ -7,12 +7,14 @@ import type {
 } from "../types";
 
 const API_URL =
-    import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+    import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "https://chat-ia-api-free.onrender.com";
 
 interface ApiError {
     error: string;
+    code?: string;
     detail?: string;
     attemptedModels?: string[];
+    failedModels?: { model: string; reason: string }[];
 }
 
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {

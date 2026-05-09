@@ -45,12 +45,38 @@ function createConversationTitle(message: string) {
     return compact.length > 44 ? `${compact.slice(0, 44)}...` : compact;
 }
 
-function formatError(error: unknown) {
+interface ApiErrorResponse {
+    error: string;
+    code?: string;
+    detail?: string;
+}
+
+function formatError(error: unknown): string {
     if (error instanceof DOMException && error.name === "AbortError") {
         return "La solicitud fue cancelada antes de completarse.";
     }
 
     if (error instanceof Error) {
+        // Intentar parsear el mensaje como JSON del backend
+        try {
+            const parsed = JSON.parse(error.message);
+            if (parsed.error && parsed.code) {
+                // Error con código del backend
+                switch (parsed.code) {
+                    case "AUTH_ERROR":
+                        return "Error de conexión con el servicio de IA. Por favor, contacta al administrador.";
+                    case "MODEL_PAID":
+                        return "El modelo seleccionado ya no es gratuito. Por favor, selecciona otro modelo e intenta de nuevo.";
+                    case "ALL_MODELS_FAILED":
+                        return "Ningún modelo está respondiendo en este momento. Por favor, intenta de nuevo en unos minutos.";
+                    default:
+                        return parsed.error;
+                }
+            }
+        } catch {
+            // No era JSON, usar el mensaje directamente
+        }
+
         return error.message;
     }
 
@@ -298,22 +324,57 @@ export function useChat() {
 
             await refreshMessages(args.conversationId);
         } catch (streamError) {
+            // Errores que NO se muestran al usuario (fallback automático)
+            const silentErrors = [
+                "Controller is already closed",
+                "aborted",
+                "failed to fetch",
+                "network error",
+                "ECONNREFUSED",
+                "timeout",
+                "Failed to fetch",
+            ];
+
+            const isSilentError = silentErrors.some(
+                (err) => streamError instanceof Error && streamError.message.toLowerCase().includes(err.toLowerCase())
+            );
+
+            // Si es un error silencioso, no mostrar nada al usuario
+            // El backend ya está haciendo fallback automáticamente
+            if (isSilentError) {
+                // Mantener el mensaje como pending y dejar que el backend reintente
+                return;
+            }
+
             const message = formatError(streamError);
 
-            patchMessage(args.conversationId, aiMessage.id, {
-                content: message,
-                error: true,
-                pending: false,
-                retryable: true,
-            });
+            // Solo mostrar error crítico al usuario
+            const showToUser = 
+                message.includes("ningún modelo") || 
+                message.includes("no está respondiendo") ||
+                message.includes("Error de conexión") ||
+                message.includes("no es gratuito");
 
-            setError(message);
-            setLastFailedRequest({
-                conversationId: args.conversationId,
-                message: args.message,
-                model: args.model,
-                persistUserMessage: false,
-            });
+            if (showToUser) {
+                patchMessage(args.conversationId, aiMessage.id, {
+                    content: message,
+                    error: true,
+                    pending: false,
+                    retryable: true,
+                });
+                setError(message);
+                setLastFailedRequest({
+                    conversationId: args.conversationId,
+                    message: args.message,
+                    model: args.model,
+                    persistUserMessage: false,
+                });
+            } else {
+                // Error temporal - mantener como pending para reintento automático del backend
+                patchMessage(args.conversationId, aiMessage.id, {
+                    pending: true,
+                });
+            }
         } finally {
             setIsStreaming(false);
             streamAbortRef.current = null;

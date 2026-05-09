@@ -42,6 +42,21 @@ const OPENROUTER_AUTH_ERROR_PATTERNS = [
     "401",
 ];
 
+// Modelos que sabemos que ya no son gratuitos — se ignoran al inicio
+const KNOWN_PAID_MODELS = [
+    "tencent/hy3-preview",
+    "inclusionai/ling-2.6-1t",
+    "meta-llama/llama-3.3-70b",
+];
+
+// Patrones de error que indican modelo ya no es gratuito
+const MODEL_PAID_PATTERNS = [
+    "no longer available as a free model",
+    "is now a paid model",
+    "no longer free",
+    "premium",
+];
+
 // Initialize the OpenRouter SDK
 const openRouter = new OpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY || "",
@@ -64,6 +79,17 @@ const isOpenRouterAuthError = (error: unknown): boolean => {
 
     return OPENROUTER_AUTH_ERROR_PATTERNS.some((pattern) =>
         message.includes(pattern),
+    );
+};
+
+const isModelPaidError = (error: unknown): boolean => {
+    if (!(error instanceof Error)) {
+        return false;
+    }
+
+    const message = error.message.toLowerCase();
+    return MODEL_PAID_PATTERNS.some((pattern) =>
+        message.includes(pattern.toLowerCase()),
     );
 };
 
@@ -244,17 +270,24 @@ export const handleChat = async (req: Request): Promise<Response> => {
         const uniqueModels = [...new Set(allModelIds)];
         const shuffledModels = shuffleArray(uniqueModels);
 
+        // Filtrar modelos que sabemos que ya no son gratuitos
+        const filteredModels = shuffledModels.filter(
+            (model) => !KNOWN_PAID_MODELS.some((paid) => model.includes(paid))
+        );
+
         let completion: AsyncIterable<ChatCompletionChunk> | null = null;
         let attempts = 0;
         let finalError: unknown = null;
+        let lastErrorMessage = "";
         const attemptedModels: string[] = [];
+        const failedModels: { model: string; reason: string }[] = [];
 
         // Siempre mezclamos los modelos para tener fallback
         const modelsToTry = body.model
-            ? [body.model, ...shuffledModels.filter((m) => m !== body.model)]
-            : shuffledModels;
+            ? [body.model, ...filteredModels.filter((m) => m !== body.model)]
+            : filteredModels;
 
-        const maxAttempts = Math.min(modelsToTry.length, 15);
+        const maxAttempts = modelsToTry.length;
         let modelToUse: string | undefined;
 
         while (attempts < maxAttempts) {
@@ -265,9 +298,6 @@ export const handleChat = async (req: Request): Promise<Response> => {
             }
 
             attemptedModels.push(modelToUse);
-            console.log(
-                `[API] Intento ${attempts + 1}/${maxAttempts}... Modelo: ${modelToUse}`,
-            );
 
             try {
                 completion = await openRouter.chat.send({
@@ -279,11 +309,11 @@ export const handleChat = async (req: Request): Promise<Response> => {
                 });
                 break; // Salió bien
             } catch (err: unknown) {
-                console.error(
-                    `[API] El modelo ${modelToUse} falló:`,
-                    err instanceof Error ? err.message : err,
-                );
+                const errorMsg = err instanceof Error ? err.message : String(err);
+
+                failedModels.push({ model: modelToUse, reason: errorMsg });
                 finalError = err;
+                lastErrorMessage = errorMsg;
 
                 if (isOpenRouterAuthError(err)) {
                     console.error(
@@ -291,31 +321,42 @@ export const handleChat = async (req: Request): Promise<Response> => {
                     );
                     break;
                 }
-                attempts++;
 
-                // Siempre continuamos al siguiente modelo
+                // Si el modelo ahora es pago, no seguir intentándolo
+                if (isModelPaidError(err)) {
+                    console.log(`[API] Saltando ${modelToUse} - ya no es gratuito`);
+                }
+
+                attempts++;
             }
         }
 
-        // Si no se pudo completar, devolvemos error real
+        // Si no se pudo completar, devolvemos error claro
         if (!completion) {
             console.error(
-                "[API] Todos los intentos fallaron:",
-                attemptedModels,
+                "[API] Todos los modelos fallaron:",
+                attemptedModels.join(", "),
             );
             const hasAuthError = isOpenRouterAuthError(finalError);
+            const isPaidModelError = isModelPaidError(finalError);
+
+            // Mensaje amigable para el usuario
+            let userMessage = "Lo sentimos, en este momento ninguno de los modelos disponibles está respondiendo. Por favor, intenta de nuevo en unos minutos.";
+            if (isPaidModelError) {
+                userMessage = "Uno de los modelos seleccionados ya no es gratuito. Por favor, selecciona otro modelo e intenta de nuevo.";
+            } else if (hasAuthError) {
+                userMessage = "Error de conexión con el servicio de IA. Por favor, contacta al administrador.";
+            }
+
             return jsonResponse(
                 {
-                    error: hasAuthError
-                        ? "Error de autenticación con OpenRouter"
-                        : "No se pudo obtener respuesta del proveedor de IA",
-                    detail:
-                        finalError instanceof Error
-                            ? finalError.message
-                            : "Todos los intentos con modelos fallaron",
+                    error: userMessage,
+                    code: hasAuthError ? "AUTH_ERROR" : isPaidModelError ? "MODEL_PAID" : "ALL_MODELS_FAILED",
+                    detail: lastErrorMessage,
                     attemptedModels,
+                    failedModels,
                 },
-                hasAuthError ? 500 : 502,
+                hasAuthError ? 500 : isPaidModelError ? 402 : 503,
             );
         }
 
