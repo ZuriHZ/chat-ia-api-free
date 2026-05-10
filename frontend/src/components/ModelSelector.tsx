@@ -1,4 +1,11 @@
 import type { Model } from "../types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface ModelSelectorProps {
     isLoading: boolean;
@@ -14,23 +21,26 @@ export function ModelSelector({
     selectedModel,
 }: ModelSelectorProps) {
     return (
-        <label className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-slate-500 ml-1">
-                Modelo IA
+        <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hidden sm:inline">
+                Modelo
             </span>
-
-            <select
-                className="min-w-[140px] appearance-none rounded-full border border-white/10 bg-slate-800/80 px-4 py-2 text-sm font-medium text-slate-200 outline-none transition-all hover:border-white/20 focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 shadow-sm"
+            <Select
                 disabled={isLoading}
-                onChange={(event) => onChange(event.target.value)}
                 value={selectedModel}
+                onValueChange={onChange}
             >
-                {models.map((model) => (
-                    <option key={model.id} value={model.id}>
-                        {model.label}
-                    </option>
-                ))}
-            </select>
-        </label>
+                <SelectTrigger className="h-8 w-full sm:w-[180px] rounded-full bg-surface border-border hover:bg-accent transition-colors">
+                    <SelectValue placeholder="Seleccionar modelo" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border bg-surface">
+                    {models.map((model) => (
+                        <SelectItem key={model.id} value={model.id} className="rounded-lg">
+                            {model.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
     );
 }

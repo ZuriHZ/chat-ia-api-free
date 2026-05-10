@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
 import type { Message, Model } from "../types";
 import { ChatInput } from "./ChatInput";
 import { ChatMessage } from "./ChatMessage";
-import { ModelSelector } from "./ModelSelector";
+import { ChatHeader } from "./layout/ChatHeader";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import * as React from "react";
 
 interface ChatContainerProps {
     canRetry: boolean;
@@ -35,113 +36,112 @@ export function ChatContainer({
     onSubmit,
     selectedModel,
 }: ChatContainerProps) {
-    const endRef = useRef<HTMLDivElement | null>(null);
+    // Using any for the ref to avoid complex Radix internal type issues with querySelector
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scrollAreaRef = React.useRef<any>(null);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (messages.length > 0 || isStreaming) {
-            requestAnimationFrame(() => {
-                endRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "end",
+            const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+            if (viewport) {
+                requestAnimationFrame(() => {
+                    viewport.scrollTo({
+                        top: viewport.scrollHeight,
+                        behavior: "smooth",
+                    });
                 });
-            });
+            }
         }
     }, [messages, isStreaming]);
 
     const isEmpty = messages.length === 0 && !isLoadingMessages && !isBootstrapping;
 
     return (
-        <>
-            <header className="border-b border-white/5 px-6 py-6 lg:px-8">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="space-y-2">
-                        <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-cyan-400">
-                            Chat IA Migration
-                        </p>
-                        <div>
-                            <h1 className="font-semibold text-3xl text-slate-100 sm:text-4xl tracking-tight">
-                                Centro de conversaciones
-                            </h1>
-                            <p className="max-w-2xl text-sm text-slate-400 sm:text-base mt-2">
-                                Streaming en vivo, historial por conversación y
-                                cambio de modelo sin salir del chat.
-                            </p>
-                        </div>
-                    </div>
+        <div className="flex flex-col flex-1 h-full overflow-hidden bg-background relative">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-grid-white pointer-events-none" />
+            
+            <ChatHeader 
+                currentConversationId={currentConversationId}
+                isStreaming={isStreaming}
+                models={models}
+                modelsLoading={modelsLoading}
+                onModelChange={onModelChange}
+                selectedModel={selectedModel}
+            />
 
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <span className="inline-flex items-center rounded-full bg-cyan-950/50 border border-cyan-500/20 px-3 py-1.5 text-[0.7rem] font-semibold text-cyan-300 uppercase tracking-widest shadow-inner">
-                            {isStreaming
-                                ? "Transmitiendo respuesta"
-                                : currentConversationId
-                                  ? `Conversación #${currentConversationId}`
-                                  : "Conversación nueva"}
-                        </span>
-
-                        <ModelSelector
-                            isLoading={modelsLoading}
-                            models={models}
-                            selectedModel={selectedModel}
-                            onChange={onModelChange}
-                        />
-                    </div>
-                </div>
-            </header>
-
-            <div className="chat-scroll flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-                {isBootstrapping || isLoadingMessages ? (
-                    <div className="flex h-full min-h-80 items-center justify-center">
-                        <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/5 px-6 py-5 text-sm text-slate-400 shadow-sm animate-pulse">
-                            Cargando historial de la conversación...
-                        </div>
-                    </div>
-                ) : null}
-
-                {isEmpty ? (
-                    <div className="flex h-full min-h-96 items-center justify-center">
-                        <div className="max-w-xl rounded-4xl border border-white/5 bg-white/5 p-8 shadow-2xl backdrop-blur-md">
-                            <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-blue-400">
-                                Listo para comenzar
-                            </p>
-                            <h2 className="mt-3 font-semibold text-3xl text-slate-100 tracking-tight">
-                                Pregunta algo y empieza una conversación nueva
-                            </h2>
-                            <p className="mt-4 text-base leading-relaxed text-slate-400">
-                                El mensaje se enviará al backend, se guardará en la
-                                conversación activa y la respuesta aparecerá en
-                                streaming instantáneo.
-                            </p>
-                        </div>
-                    </div>
-                ) : null}
-
-                {!isEmpty ? (
-                    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-4">
-                        {messages.map((message) => (
-                            <ChatMessage key={message.id} message={message} />
-                        ))}
-
-                        {isStreaming ? (
-                            <div className="inline-flex w-fit items-center gap-3 rounded-full bg-slate-800/80 border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 shadow-sm backdrop-blur-md">
-                                <span className="size-2 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                                <span className="tracking-wide">Escribiendo...</span>
+            <ScrollArea 
+                className="flex-1 relative z-0"
+                ref={scrollAreaRef}
+            >
+                <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 min-h-full flex flex-col">
+                    {isBootstrapping || isLoadingMessages ? (
+                        <div className="flex flex-1 items-center justify-center py-20">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                <p className="text-sm text-muted-foreground animate-pulse">
+                                    Cargando conversaciones...
+                                </p>
                             </div>
-                        ) : null}
-                    </div>
-                ) : null}
+                        </div>
+                    ) : null}
 
-                <div ref={endRef} />
-            </div>
+                    {isEmpty ? (
+                        <div className="flex flex-1 items-center justify-center py-20">
+                            <div className="max-w-md text-center animate-in fade-in zoom-in duration-700">
+                                <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                                <h2 className="text-3xl font-bold tracking-tight bg-linear-to-b from-foreground to-foreground/70 bg-clip-text text-transparent sm:text-4xl">
+                                    Pro-AI Experience
+                                </h2>
+                                <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
+                                    Bienvenido al centro de conversaciones avanzado. Selecciona un modelo y comienza a explorar las posibilidades de la IA.
+                                </p>
+                            </div>
+                        </div>
+                    ) : null}
 
-            <div className="border-t border-white/5 bg-slate-900/30 px-5 py-5 sm:px-8 backdrop-blur-md">
-                <ChatInput
-                    canRetry={canRetry}
-                    error={error}
-                    isStreaming={isStreaming}
-                    onRetry={onRetry}
-                    onSubmit={onSubmit}
-                />
+                    {!isEmpty && !isLoadingMessages ? (
+                        <div className="flex flex-col gap-10 pb-32">
+                            {messages.map((message) => (
+                                <ChatMessage key={message.id} message={message} />
+                            ))}
+
+                            {isStreaming ? (
+                                <div className="flex items-start gap-4 px-2 py-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    <div className="h-8 w-8 shrink-0 rounded-full bg-surface border border-border flex items-center justify-center">
+                                         <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                                    </div>
+                                    <div className="flex-1 space-y-3 pt-1">
+                                        <div className="h-2.5 w-2/3 animate-pulse rounded-full bg-muted/40" />
+                                        <div className="h-2.5 w-1/2 animate-pulse rounded-full bg-muted/40" />
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </div>
+            </ScrollArea>
+
+            <div className="sticky bottom-0 left-0 right-0 bg-linear-to-t from-background via-background/95 to-transparent pb-8 pt-10 px-4 sm:px-6 lg:px-8 z-10">
+                <div className="mx-auto max-w-4xl">
+                    <ChatInput
+                        canRetry={canRetry}
+                        error={error}
+                        isStreaming={isStreaming}
+                        onRetry={onRetry}
+                        onSubmit={handleSendMessage}
+                    />
+                    <p className="mt-3 text-center text-[10px] text-muted-foreground/60 font-medium">
+                        Modelos optimizados para productividad • Chat IA Migration v2.0
+                    </p>
+                </div>
             </div>
-        </>
+        </div>
     );
+
+    async function handleSendMessage(message: string) {
+        await onSubmit(message);
+    }
 }

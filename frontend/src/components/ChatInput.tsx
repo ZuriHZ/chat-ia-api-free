@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Send, CornerDownLeft, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ChatInputProps {
     canRetry: boolean;
@@ -16,6 +19,16 @@ export function ChatInput({
     onSubmit,
 }: ChatInputProps) {
     const [value, setValue] = useState("");
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize logic
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.style.height = "auto";
+            textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+        }
+    }, [value]);
 
     async function handleSubmit() {
         const nextValue = value.trim();
@@ -29,58 +42,72 @@ export function ChatInput({
     }
 
     return (
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
-            {error ? (
-                <div className="flex flex-col gap-3 rounded-3xl border border-rose-500/30 bg-rose-950/40 px-5 py-4 text-sm text-rose-200 sm:flex-row sm:items-center sm:justify-between">
-                    <span>{error}</span>
-
-                    {canRetry ? (
-                        <button
-                            className="inline-flex items-center justify-center rounded-full bg-rose-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-rose-500 shadow-lg shadow-rose-500/20"
-                            onClick={onRetry}
-                            type="button"
-                        >
-                            Reintentar
-                        </button>
-                    ) : null}
+        <div className="relative">
+            {error && (
+                <div className="absolute bottom-full left-0 right-0 mb-4 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="flex items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive backdrop-blur-md">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle size={16} />
+                            <span>{error}</span>
+                        </div>
+                        {canRetry && (
+                            <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={onRetry}
+                                className="h-7 rounded-lg px-3 text-[10px] font-bold uppercase tracking-wider"
+                            >
+                                Reintentar
+                            </Button>
+                        )}
+                    </div>
                 </div>
-            ) : null}
+            )}
 
-            <div className="rounded-4xl border border-white/10 bg-slate-800/60 p-3 shadow-xl backdrop-blur-xl transition-all focus-within:border-cyan-500/50 focus-within:bg-slate-800/80 focus-within:shadow-[0_0_40px_-15px_rgba(6,182,212,0.3)]">
-                <label className="sr-only" htmlFor="chat-input">
-                    Mensaje
-                </label>
-
-                <textarea
-                    className="min-h-24 w-full resize-none rounded-[1.35rem] bg-transparent px-5 py-4 text-[0.95rem] leading-relaxed text-slate-100 outline-none transition placeholder:text-slate-500"
+            <div className="group relative flex flex-col gap-2 rounded-3xl border border-border bg-surface/50 p-2 shadow-2xl backdrop-blur-xl transition-all focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10">
+                <Textarea
+                    ref={textareaRef}
+                    className="min-h-[52px] w-full resize-none border-0 bg-transparent px-4 py-3 text-sm leading-relaxed text-foreground ring-0 focus-visible:ring-0 placeholder:text-muted-foreground/60"
                     disabled={isStreaming}
-                    id="chat-input"
-                    onChange={(event) => setValue(event.target.value)}
-                    onKeyDown={(event) => {
-                        if (event.key === "Enter" && !event.shiftKey) {
-                            event.preventDefault();
-                            void handleSubmit();
+                    placeholder="Escribe un mensaje..."
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            if (!isStreaming && value.trim()) {
+                                e.preventDefault();
+                                void handleSubmit();
+                            } else {
+                                e.preventDefault();
+                            }
                         }
                     }}
-                    placeholder="Escribe tu mensaje. Enter envía, Shift + Enter nueva línea."
-                    value={value}
                 />
 
-                <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2 pb-1">
-                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-slate-500">
-                        Streaming activo
-                    </p>
+                <div className="flex items-center justify-between px-2 pb-1">
+                    <div className="flex items-center gap-2 px-2 text-[10px] text-muted-foreground/60 font-medium">
+                        <CornerDownLeft size={12} />
+                        <span>Presiona Enter para enviar</span>
+                    </div>
 
-                    <button
-                        className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-cyan-500 to-blue-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/25 transition-all hover:scale-[1.03] hover:shadow-cyan-500/40 disabled:pointer-events-none disabled:opacity-50"
+                    <Button
+                        size="sm"
+                        className="h-8 rounded-full px-4 font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
                         disabled={isStreaming || !value.trim()}
-                        onClick={() => {
-                            void handleSubmit();
-                        }}
-                        type="button"
+                        onClick={() => void handleSubmit()}
                     >
-                        {isStreaming ? "Enviando..." : "Enviar mensaje"}
-                    </button>
+                        {isStreaming ? (
+                            <span className="flex items-center gap-2">
+                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                Enviando
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-2">
+                                <Send size={12} />
+                                Enviar
+                            </span>
+                        )}
+                    </Button>
                 </div>
             </div>
         </div>
