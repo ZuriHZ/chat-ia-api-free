@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Activity, Bot, Loader2, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 import type { Message, Model } from "../types";
 import { ChatInput } from "./ChatInput";
 import { ChatMessage } from "./ChatMessage";
@@ -52,46 +53,52 @@ export function ChatContainer({
 
     return (
         <>
-            <header className="border-b border-white/5 px-6 py-6 lg:px-8">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="space-y-2">
-                        <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-cyan-400">
+            <header className="border-b border-white/5 px-5 py-5 sm:px-7 lg:px-8">
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                    <div className="min-w-0 space-y-3">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-3 py-1.5 text-[0.7rem] font-extrabold uppercase tracking-[0.28em] accent-text">
+                            <Sparkles className="size-3.5" />
                             Chat IA Migration
-                        </p>
+                        </div>
                         <div>
-                            <h1 className="font-semibold text-3xl text-slate-100 sm:text-4xl tracking-tight">
+                            <h1 className="text-3xl font-extrabold tracking-[-0.04em] text-primary sm:text-4xl lg:text-5xl">
                                 Centro de conversaciones
                             </h1>
-                            <p className="max-w-2xl text-sm text-slate-400 sm:text-base mt-2">
-                                Streaming en vivo, historial por conversación y
-                                cambio de modelo sin salir del chat.
+                            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
+                                Un espacio más limpio para escribir, leer respuestas en streaming y cambiar de modelo sin salir del flujo.
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <span className="inline-flex items-center rounded-full bg-cyan-950/50 border border-cyan-500/20 px-3 py-1.5 text-[0.7rem] font-semibold text-cyan-300 uppercase tracking-widest shadow-inner">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3.5 py-2 text-[0.72rem] font-extrabold uppercase tracking-[0.18em] accent-text shadow-inner">
+                            {isStreaming ? (
+                                <Activity className="size-3.5 animate-pulse" />
+                            ) : (
+                                <ShieldCheck className="size-3.5" />
+                            )}
                             {isStreaming
-                                ? "Transmitiendo respuesta"
+                                ? "Transmitiendo"
                                 : currentConversationId
-                                  ? `Conversación #${currentConversationId}`
-                                  : "Conversación nueva"}
+                                  ? `Chat #${currentConversationId}`
+                                  : "Nuevo chat"}
                         </span>
 
                         <ModelSelector
                             isLoading={modelsLoading}
                             models={models}
-                            selectedModel={selectedModel}
                             onChange={onModelChange}
+                            selectedModel={selectedModel}
                         />
                     </div>
                 </div>
             </header>
 
-            <div className="chat-scroll flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+            <div className="chat-scroll flex-1 overflow-y-auto px-4 py-6 sm:px-7 lg:px-8">
                 {isBootstrapping || isLoadingMessages ? (
                     <div className="flex h-full min-h-80 items-center justify-center">
-                        <div className="rounded-[1.75rem] border border-dashed border-white/10 bg-white/5 px-6 py-5 text-sm text-slate-400 shadow-sm animate-pulse">
+                        <div className="surface-card flex items-center gap-3 rounded-[1.5rem] px-5 py-4 text-sm font-semibold text-muted shadow-sm">
+                            <Loader2 className="size-4 animate-spin accent-text" />
                             Cargando historial de la conversación...
                         </div>
                     </div>
@@ -99,32 +106,49 @@ export function ChatContainer({
 
                 {isEmpty ? (
                     <div className="flex h-full min-h-96 items-center justify-center">
-                        <div className="max-w-xl rounded-4xl border border-white/5 bg-white/5 p-8 shadow-2xl backdrop-blur-md">
-                            <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-blue-400">
+                        <div className="max-w-2xl rounded-[2rem] border border-white/10 bg-white/[0.055] p-7 shadow-2xl backdrop-blur-md sm:p-9">
+                            <div className="grid size-14 place-items-center rounded-3xl bg-cyan-500/[0.12] accent-text">
+                                <Bot className="size-7" />
+                            </div>
+                            <p className="mt-6 text-[0.7rem] font-extrabold uppercase tracking-[0.32em] accent-text">
                                 Listo para comenzar
                             </p>
-                            <h2 className="mt-3 font-semibold text-3xl text-slate-100 tracking-tight">
+                            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
                                 Pregunta algo y empieza una conversación nueva
                             </h2>
-                            <p className="mt-4 text-base leading-relaxed text-slate-400">
-                                El mensaje se enviará al backend, se guardará en la
-                                conversación activa y la respuesta aparecerá en
-                                streaming instantáneo.
+                            <p className="mt-4 text-base leading-8 text-muted">
+                                Usa el compositor inferior para enviar tu primer mensaje. Las respuestas aparecerán con mejor jerarquía visual, soporte Markdown y bloques de código cómodos de copiar.
                             </p>
+                            <div className="mt-6 grid gap-3 text-sm text-muted sm:grid-cols-3">
+                                {[
+                                    "Enter envía",
+                                    "Markdown legible",
+                                    "Historial persistente",
+                                ].map((item) => (
+                                    <div className="surface-card rounded-2xl px-4 py-3" key={item}>
+                                        <MessageCircle className="mb-2 size-4 accent-text" />
+                                        {item}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 ) : null}
 
                 {!isEmpty ? (
-                    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-4">
+                    <div className="mx-auto flex max-w-4xl flex-col gap-5 pb-4">
                         {messages.map((message) => (
                             <ChatMessage key={message.id} message={message} />
                         ))}
 
                         {isStreaming ? (
-                            <div className="inline-flex w-fit items-center gap-3 rounded-full bg-slate-800/80 border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 shadow-sm backdrop-blur-md">
-                                <span className="size-2 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                                <span className="tracking-wide">Escribiendo...</span>
+                            <div className="message-card-ai inline-flex w-fit items-center gap-3 rounded-full px-4 py-2.5 text-sm font-semibold text-muted shadow-sm backdrop-blur-md">
+                                <span className="flex gap-1.5">
+                                    <span className="size-2 animate-bounce rounded-full bg-cyan-400 [animation-delay:-0.2s]" />
+                                    <span className="size-2 animate-bounce rounded-full bg-cyan-400 [animation-delay:-0.1s]" />
+                                    <span className="size-2 animate-bounce rounded-full bg-cyan-400" />
+                                </span>
+                                Escribiendo respuesta...
                             </div>
                         ) : null}
                     </div>
@@ -133,7 +157,7 @@ export function ChatContainer({
                 <div ref={endRef} />
             </div>
 
-            <div className="border-t border-white/5 bg-slate-900/30 px-5 py-5 sm:px-8 backdrop-blur-md">
+            <footer className="border-t border-white/5 bg-black/[0.045] px-4 py-4 backdrop-blur-xl sm:px-7 lg:px-8">
                 <ChatInput
                     canRetry={canRetry}
                     error={error}
@@ -141,7 +165,7 @@ export function ChatContainer({
                     onRetry={onRetry}
                     onSubmit={onSubmit}
                 />
-            </div>
+            </footer>
         </>
     );
 }

@@ -1,3 +1,4 @@
+import { MessageSquare, Plus, Trash2 } from "lucide-react";
 import type { Conversation } from "../types";
 
 interface ConversationListProps {
@@ -35,95 +36,120 @@ export function ConversationList({
     onSelectConversation,
 }: ConversationListProps) {
     return (
-        <aside className="glass-panel flex w-full flex-col rounded-4xl lg:max-w-[320px]">
-            <div className="border-b border-white/5 px-6 py-6">
-                <p className="text-[0.65rem] font-bold uppercase tracking-[0.35em] text-cyan-400">
-                    Navegación
-                </p>
-                <h2 className="mt-2 font-semibold text-2xl text-slate-100">
-                    Conversaciones
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Cambia entre historiales guardados o abre una nueva sala de chat para empezar desde cero.
+        <aside className="glass-panel flex max-h-[34vh] w-full flex-col overflow-hidden rounded-[1.75rem] lg:max-h-none lg:rounded-[2rem]">
+            <div className="border-b border-white/5 p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.32em] accent-text">
+                            Workspace
+                        </p>
+                        <h2 className="mt-2 text-2xl font-bold tracking-tight text-primary">
+                            Conversaciones
+                        </h2>
+                    </div>
+
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-muted">
+                        {conversations.length}
+                    </span>
+                </div>
+
+                <p className="mt-3 text-sm leading-6 text-muted">
+                    Historial ordenado, selección rápida y acciones visibles sin perder contexto.
                 </p>
 
                 <button
-                    className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-linear-to-r from-cyan-500 to-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:scale-[1.02] hover:shadow-cyan-500/40 disabled:pointer-events-none disabled:opacity-50"
+                    className="button-primary mt-5 w-full px-5 py-3 text-sm"
                     disabled={isCreatingConversation}
                     onClick={() => {
                         void onCreateConversation();
                     }}
                     type="button"
                 >
+                    <Plus className="size-4" />
                     {isCreatingConversation
                         ? "Creando conversación..."
                         : "Nueva conversación"}
                 </button>
             </div>
 
-            <div className="chat-scroll max-h-96 flex-1 overflow-y-auto px-4 py-4 lg:max-h-none">
+            <div className="chat-scroll flex-1 overflow-y-auto p-3 sm:p-4">
                 {isLoading && conversations.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-white/10 px-4 py-5 text-sm text-slate-400 text-center animate-pulse">
-                        Cargando conversaciones...
+                    <div className="space-y-3">
+                        {[0, 1, 2].map((item) => (
+                            <div
+                                className="surface-card animate-pulse rounded-3xl p-4"
+                                key={item}
+                            >
+                                <div className="h-4 w-3/4 rounded-full bg-slate-400/20" />
+                                <div className="mt-3 h-3 w-1/2 rounded-full bg-slate-400/10" />
+                            </div>
+                        ))}
                     </div>
                 ) : null}
 
                 {!isLoading && conversations.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-sm leading-6 text-slate-400 text-center">
-                        Aún no hay conversaciones guardadas. Crea la primera y el
-                        historial aparecerá aquí.
+                    <div className="surface-card rounded-3xl px-4 py-7 text-center text-sm leading-6 text-muted">
+                        <MessageSquare className="mx-auto mb-3 size-8 accent-text" />
+                        Aún no hay conversaciones guardadas. Crea la primera y el historial aparecerá aquí.
                     </div>
                 ) : null}
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2.5">
                     {conversations.map((conversation) => {
                         const isActive = conversation.id === currentConversationId;
 
                         return (
                             <div
-                                className={`group rounded-[1.25rem] border px-4 py-4 transition-all cursor-pointer ${
+                                className={`group cursor-pointer rounded-[1.35rem] border p-3.5 transition-all duration-200 hover:-translate-y-0.5 ${
                                     isActive
-                                        ? "border-cyan-500/50 bg-cyan-950/30 shadow-[0_8px_30px_-12px_rgba(6,182,212,0.4)]"
-                                        : "border-white/5 bg-white/5 hover:border-white/10 hover:bg-white/10"
+                                        ? "border-cyan-400/45 bg-cyan-500/15 shadow-[0_16px_42px_-28px_rgba(6,182,212,0.85)]"
+                                        : "border-white/5 bg-white/[0.035] hover:border-white/10 hover:bg-white/[0.07]"
                                 }`}
                                 key={conversation.id}
                                 onClick={() => onSelectConversation(conversation.id)}
                             >
-                                <div className="w-full text-left">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className={`truncate text-sm font-medium ${isActive ? "text-cyan-100" : "text-slate-200"}`}>
-                                                {conversation.title || "Sin título"}
-                                            </p>
-                                            <p
-                                                className={`mt-1 text-[0.7rem] uppercase tracking-[0.2em] ${
-                                                    isActive
-                                                        ? "text-cyan-400/80"
-                                                        : "text-slate-500"
-                                                }`}
-                                            >
-                                                {formatConversationDate(
-                                                    conversation.created_at,
-                                                )}
-                                            </p>
-                                        </div>
+                                <div className="flex items-start gap-3">
+                                    <span
+                                        className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-2xl ${
+                                            isActive
+                                                ? "bg-cyan-400/20 text-cyan-200"
+                                                : "bg-white/5 text-muted"
+                                        }`}
+                                    >
+                                        <MessageSquare className="size-4" />
+                                    </span>
+
+                                    <div className="min-w-0 flex-1">
+                                        <p className={`truncate text-sm font-semibold ${isActive ? "text-primary" : "text-primary"}`}>
+                                            {conversation.title || "Sin título"}
+                                        </p>
+                                        <p className="mt-1 text-[0.7rem] font-bold uppercase tracking-[0.18em] text-subtle">
+                                            {formatConversationDate(conversation.created_at)}
+                                        </p>
                                     </div>
                                 </div>
 
-                                <button
-                                    className={`mt-4 inline-flex rounded-full px-4 py-1.5 text-[0.7rem] font-medium transition-all uppercase tracking-wider ${
-                                        isActive
-                                            ? "bg-white/10 text-white hover:bg-rose-500/20 hover:text-rose-400"
-                                            : "bg-white/5 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400 opacity-0 lg:group-hover:opacity-100"
-                                    }`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void onDeleteConversation(conversation.id);
-                                    }}
-                                    type="button"
-                                >
-                                    Eliminar
-                                </button>
+                                <div className="mt-3 flex items-center justify-between gap-3">
+                                    <span className="rounded-full bg-white/5 px-2.5 py-1 text-[0.68rem] font-semibold text-muted">
+                                        #{conversation.id}
+                                    </span>
+                                    <button
+                                        aria-label={`Eliminar ${conversation.title || "conversación"}`}
+                                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.7rem] font-bold uppercase tracking-wide transition ${
+                                            isActive
+                                                ? "bg-white/10 text-primary hover:bg-rose-500/15 hover:text-rose-300"
+                                                : "bg-white/5 text-subtle opacity-100 hover:bg-rose-500/15 hover:text-rose-300 lg:opacity-0 lg:group-hover:opacity-100"
+                                        }`}
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            void onDeleteConversation(conversation.id);
+                                        }}
+                                        type="button"
+                                    >
+                                        <Trash2 className="size-3.5" />
+                                        Eliminar
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}
