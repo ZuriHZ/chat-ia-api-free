@@ -1,78 +1,82 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-:root {
-    color: #f8fafc;
-    font-family: "Inter", system-ui, sans-serif;
-    font-synthesis: none;
-    line-height: 1.5;
-    text-rendering: optimizeLegibility;
-    -moz-osx-font-smoothing: grayscale;
-    -webkit-font-smoothing: antialiased;
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* Colors - Based on Pro-AI Design System */
+  --color-background: #0b1326;
+  --color-foreground: #dae2fd;
+  
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  
+  --color-secondary: #06b6d4;
+  --color-secondary-foreground: #001f26;
+  
+  --color-accent: #1e293b;
+  --color-accent-foreground: #dae2fd;
+  
+  --color-surface: #0f172a;
+  --color-surface-dim: #0b1326;
+  --color-surface-bright: #31394d;
+  
+  --color-border: rgba(255, 255, 255, 0.05);
+  --color-input: rgba(255, 255, 255, 0.02);
+  --color-ring: #3b82f6;
+  
+  /* Typography */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  /* Radii */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  
+  /* Shadcn standard tokens for compatibility */
+  --color-card: #0f172a;
+  --color-card-foreground: #dae2fd;
+  --color-popover: #0f172a;
+  --color-popover-foreground: #dae2fd;
+  --color-muted: #1e293b;
+  --color-muted-foreground: #c2c6d6;
+
+  /* Sidebar Tokens */
+  --color-sidebar: var(--color-surface);
+  --color-sidebar-foreground: var(--color-foreground);
+  --color-sidebar-primary: var(--color-primary);
+  --color-sidebar-primary-foreground: var(--color-primary-foreground);
+  --color-sidebar-accent: var(--color-accent);
+  --color-sidebar-accent-foreground: var(--color-accent-foreground);
+  --color-sidebar-border: var(--color-border);
+  --color-sidebar-ring: var(--color-ring);
 }
 
-* {
-    box-sizing: border-box;
-}
-
-html {
-    scroll-behavior: smooth;
-    background-color: #020617;
-}
-
-body {
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
     margin: 0;
     min-width: 320px;
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
-    background:
-        radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%),
-        #020617;
+  }
 }
 
-button, input, select, textarea {
-    font: inherit;
-}
-
-button {
-    cursor: pointer;
-}
-
-#root {
-    height: 100%;
-    overflow: hidden;
-}
-
-.app-shell {
-    position: relative;
-}
-
-.app-shell::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-position: center;
-    background-size: 32px 32px;
-    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1), transparent 90%);
-}
-
+/* Custom Utilities for Pro-AI Aesthetic */
 .glass-panel {
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    @apply bg-surface/60 backdrop-blur-xl border border-border;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .chat-scroll {
     scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+    scrollbar-color: var(--color-border) transparent;
 }
 
 .chat-scroll::-webkit-scrollbar {
@@ -84,10 +88,17 @@ button {
 }
 
 .chat-scroll::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3);
-    border-radius: 999px;
+    @apply bg-border rounded-full;
 }
 
 .chat-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.5);
+    @apply bg-muted-foreground/30;
+}
+
+.bg-grid-white {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='white' stroke-opacity='0.03' stroke-width='1'%3E%3Cpath d='M0 .5H31.5V32'/%3E%3C/svg%3E");
+}
+
+.bg-dot-white {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='16' height='16' fill='none'%3E%3Ccircle fill='white' fill-opacity='0.05' cx='1' cy='1' r='1'%3E%3C/circle%3E%3C/svg%3E");
 }

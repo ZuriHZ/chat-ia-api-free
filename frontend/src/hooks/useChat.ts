@@ -5,7 +5,6 @@ import {
     useRef,
     useState,
 } from "react";
-import { useShallow } from "zustand/react/shallow";
 import {
     createConversation,
     deleteConversation,
@@ -78,35 +77,18 @@ function formatError(error: unknown): string {
 }
 
 export function useChat() {
-    const {
-        appendMessage,
-        conversations,
-        currentConversationId,
-        messagesByConversation,
-        patchMessage,
-        removeConversation: removeConversationFromStore,
-        selectedModel,
-        setConversations,
-        setCurrentConversationId,
-        setMessages,
-        setSelectedModel,
-        upsertConversation,
-    } = useChatStore(
-        useShallow((state) => ({
-            appendMessage: state.appendMessage,
-            conversations: state.conversations,
-            currentConversationId: state.currentConversationId,
-            messagesByConversation: state.messagesByConversation,
-            patchMessage: state.patchMessage,
-            removeConversation: state.removeConversation,
-            selectedModel: state.selectedModel,
-            setConversations: state.setConversations,
-            setCurrentConversationId: state.setCurrentConversationId,
-            setMessages: state.setMessages,
-            setSelectedModel: state.setSelectedModel,
-            upsertConversation: state.upsertConversation,
-        })),
-    );
+    const appendMessage = useChatStore((state) => state.appendMessage);
+    const conversations = useChatStore((state) => state.conversations);
+    const currentConversationId = useChatStore((state) => state.currentConversationId);
+    const messagesByConversation = useChatStore((state) => state.messagesByConversation);
+    const patchMessage = useChatStore((state) => state.patchMessage);
+    const removeConversationFromStore = useChatStore((state) => state.removeConversation);
+    const selectedModel = useChatStore((state) => state.selectedModel);
+    const setConversations = useChatStore((state) => state.setConversations);
+    const setCurrentConversationId = useChatStore((state) => state.setCurrentConversationId);
+    const setMessages = useChatStore((state) => state.setMessages);
+    const setSelectedModel = useChatStore((state) => state.setSelectedModel);
+    const upsertConversation = useChatStore((state) => state.upsertConversation);
 
     const [models, setModels] = useState<Model[]>([]);
     const [modelsLoading, setModelsLoading] = useState(true);
