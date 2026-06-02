@@ -28,3 +28,4 @@ backend/*.log
 Thumbs.db
 
 docs/
+scripts/
